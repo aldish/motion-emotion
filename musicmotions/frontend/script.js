@@ -157,8 +157,18 @@ async function start() {
 }
 
 async function detect() {
+  // Buat canvas untuk menangkap frame dari video
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  
+  // Gambar frame terakhir dari video ke canvas
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  // Deteksi wajah dari gambar di canvas, bukan dari video
   const result = await faceapi
-    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+    .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
     .withFaceExpressions();
 
   if (!result) {
@@ -178,6 +188,11 @@ async function detect() {
     playlistDiv.innerHTML = `<p>⚠️ Belum ada lagu untuk ekspresi "${emotion}".</p>`;
     return;
   }
+
+  // Tampilkan playlist
+  playlistDiv.innerHTML = `<h3>Lagu untuk ekspresi "${emotion}":</h3><ul>` +
+    songList.map(song => `<li>${song}</li>`).join('') +
+    `</ul>`;
 
   // Ambil 3 lagu acak
   const randomSongs = songList.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -200,5 +215,43 @@ async function detect() {
   }).join('');
   
 }
+
+function captureFaceImage(video) {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg');
+}
+
+// Ambil screenshot dari video webcam
+const faceImage = captureFaceImage(video);
+
+// Ambil waktu sekarang
+const timestamp = new Date().toISOString();
+
+// Kirim data ke backend (gunakan lagu pertama sebagai representasi)
+const selectedSong = randomSongs[0];
+
+fetch('http://localhost:3000/log-expression', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    timestamp,
+    expression: emotion,
+    image: faceImage,
+    song: {
+      title: selectedSong.title,
+      artist: selectedSong.artist,
+      url: selectedSong.url
+    }
+  })
+})
+.then(res => res.text())
+.then(data => console.log(data))
+.catch(err => console.error('Gagal mengirim data:', err));
 
 start();
