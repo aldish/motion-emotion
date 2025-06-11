@@ -1,6 +1,9 @@
 const video = document.getElementById('video');
 const status = document.getElementById('status');
 const playlistDiv = document.getElementById('playlist');
+const canvas = document.getElementById('snapshot');
+const ctx = canvas.getContext('2d');
+
 
 const playlistMap = {
   happy: [
@@ -157,25 +160,27 @@ async function start() {
 }
 
 async function detect() {
-  // Buat canvas untuk menangkap frame dari video
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  
-  // Gambar frame terakhir dari video ke canvas
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-  // Deteksi wajah dari gambar di canvas, bukan dari video
   const result = await faceapi
-    .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
     .withFaceExpressions();
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
 
   if (!result) {
     status.innerText = '❌ Wajah tidak terdeteksi.';
     playlistDiv.innerHTML = '';
+    canvas.style.display = 'none';
+    video.style.display = 'block';
     return;
   }
+
+  // Gambar frame terakhir dari video ke canvas
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Sembunyikan video dan tampilkan canvas
+  video.style.display = 'none';
+  canvas.style.display = 'block';
 
   const expressions = result.expressions;
   const emotion = Object.entries(expressions)
@@ -189,15 +194,9 @@ async function detect() {
     return;
   }
 
-  // Tampilkan playlist
-  playlistDiv.innerHTML = `<h3>Lagu untuk ekspresi "${emotion}":</h3><ul>` +
-    songList.map(song => `<li>${song}</li>`).join('') +
-    `</ul>`;
-
-  // Ambil 3 lagu acak
   const randomSongs = songList.sort(() => 0.5 - Math.random()).slice(0, 3);
 
-  playlistDiv.innerHTML = randomSongs.map((song, idx) => {
+  playlistDiv.innerHTML = randomSongs.map((song) => {
     const thumbnail = getThumbnailFileName(song.title);
     return `
       <div class="song-card">
@@ -213,45 +212,14 @@ async function detect() {
       </div>
     `;
   }).join('');
-  
+
 }
 
-function captureFaceImage(video) {
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg');
+function resetVideo() {
+  document.getElementById('canvas').style.display = 'none';
+  video.style.display = 'block';
 }
 
-// Ambil screenshot dari video webcam
-const faceImage = captureFaceImage(video);
 
-// Ambil waktu sekarang
-const timestamp = new Date().toISOString();
-
-// Kirim data ke backend (gunakan lagu pertama sebagai representasi)
-const selectedSong = randomSongs[0];
-
-fetch('http://localhost:3000/log-expression', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    timestamp,
-    expression: emotion,
-    image: faceImage,
-    song: {
-      title: selectedSong.title,
-      artist: selectedSong.artist,
-      url: selectedSong.url
-    }
-  })
-})
-.then(res => res.text())
-.then(data => console.log(data))
-.catch(err => console.error('Gagal mengirim data:', err));
 
 start();

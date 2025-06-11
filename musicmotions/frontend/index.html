@@ -115,13 +115,19 @@
 <body>
   <div class="container text-center">
     <img src="assets/logo-musicmotions.png" alt="Music Motions Logo" class="logo">
-    <div class="video-box">
+      <div class="video-box position-relative">
       <video id="video" width="100%" height="100%" autoplay muted></video>
-    </div>
+      <canvas id="canvas" width="320" height="240" style="display:none; position:absolute; top:0; left:0; z-index:1;"></canvas>
+  </div>
     <div class="d-flex justify-content-center mt-4">
   <div class="bg-white rounded-circle shadow" style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;">
     <img src="assets/tombol-deteksi.png" alt="Deteksi" style="width: 64px; height: 64px; cursor: pointer;" onclick="detect()">
   </div>
+  <canvas id="snapshot" width="320" height="240" style="display:none;"></canvas>
+  <div class="d-flex justify-content-center mt-2">
+<button class="btn btn-outline-secondary mt-3" onclick="resetVideo()">Reset Kamera</button>
+  </div>
+
 </div>
 </div>
 </div>
@@ -133,6 +139,9 @@
 </div>
     <div id="playlist" class="mt-4"></div>
   </div>
+
+
+  
 
   <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
